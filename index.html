@@ -141,18 +141,23 @@
     let userProfile = null;
 
     // 初始化 LIFF 頁面
-    liff.init({ liffId: LIFF_ID }).then(() => {
-      if (!liff.isLoggedIn()) {
-        liff.login();
-      } else {
-        liff.getProfile().then(profile => {
-          userProfile = profile;
-          document.getElementById('user-info').innerText = `👋 哈囉，${profile.displayName}！`;
-        });
-      }
+    // 初始化 LIFF 頁面
+liff.init({ liffId: LIFF_ID }).then(() => {
+  if (!liff.isLoggedIn()) {
+    liff.login();
+  } else {
+    liff.getProfile().then(profile => {
+      userProfile = profile;
+      document.getElementById('user-info').innerText = `👋 哈囉，${profile.displayName}！`;
     }).catch(err => {
-      document.getElementById('status').innerText = "LIFF 初始化失敗，請檢查 LIFF ID 設定。";
+      console.log('getProfile error:', err);
+      document.getElementById('user-info').innerText = "👋 哈囉，熱血山友！";
     });
+  }
+}).catch(err => {
+  console.log('liff.init error:', err);
+  document.getElementById('user-info').innerText = "👋 哈囉，熱血山友！";
+});
 
     // Haversine 公式計算距離 (公尺)
     function getDistance(lat1, lon1, lat2, lon2) {
