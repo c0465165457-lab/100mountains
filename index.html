@@ -22,7 +22,17 @@
   <div class="card">
     <h2>🏔️ 台灣小百岳 GPS 打卡</h2>
    <div id="user-info">載入 LINE 帳號資訊中...</div>
-    
+    <!-- 個人進度條區塊 -->
+  <div style="margin: 15px 0; background: #f0f4f8; padding: 15px; border-radius: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
+    <div style="display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 8px; font-weight: bold; color: #2c3e50;">
+      <span>🏔️ 小百岳集章進度</span>
+      <span id="progress-text" style="color: #2e7d32;">0 / 100 座</span>
+    </div>
+    <div style="width: 100%; background: #e0e0e0; height: 12px; border-radius: 6px; overflow: hidden;">
+      <div id="progress-bar" style="width: 0%; background: linear-gradient(90deg, #4caf50, #2e7d32); height: 100%; transition: width 0.6s ease;"></div>
+    </div>
+    <div id="badge-title" style="font-size: 12px; color: #555; margin-top: 8px; text-align: right; font-weight: 500;">獲得稱號：新手山友 🥾</div>
+  </div>
     <button class="btn" onclick="checkIn()">📍 開始定位打卡</button>
     
     <div id="status">按下上方按鈕即可進行 GPS 比對</div>
@@ -149,6 +159,30 @@ liff.init({ liffId: LIFF_ID }).then(() => {
 liff.getProfile().then(profile => {
       userProfile = profile;
       document.getElementById('user-info').innerText = `👋 哈囉，${profile.displayName}！`;
+      
+      // 向 GAS 查詢個人打卡紀錄
+      fetch(`${GAS_URL}?userId=${profile.userId}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.result === 'success') {
+            let count = data.count;
+            let percent = (count / 100) * 100;
+            
+            // 更新 UI 數字與進度條
+            document.getElementById('progress-text').innerText = `${count} / 100 座`;
+            document.getElementById('progress-bar').style.width = `${percent}%`;
+            
+            // 計算解鎖稱號
+            let badge = "新手山友 🥾";
+            if (count >= 100) badge = "小百岳大滿貫 🏆";
+            else if (count >= 50) badge = "登山達人 🏔️";
+            else if (count >= 20) badge = "健行高手 🌲";
+            else if (count >= 5) badge = "熱血山友 🎒";
+            
+            document.getElementById('badge-title').innerText = `獲得稱號：${badge}`;
+          }
+        })
+        .catch(err => console.log("讀取進度失敗:", err));
     }).catch(err => {
       console.log('getProfile error:', err);
       document.getElementById('user-info').innerText = "👋 哈囉，熱血山友！";
