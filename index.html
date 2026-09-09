@@ -146,7 +146,7 @@ liff.init({ liffId: LIFF_ID }).then(() => {
   if (!liff.isLoggedIn()) {
     liff.login();
   } else {
-    liff.getProfile().then(profile => {
+liff.getProfile().then(profile => {
       userProfile = profile;
       document.getElementById('user-info').innerText = `👋 哈囉，${profile.displayName}！`;
     }).catch(err => {
