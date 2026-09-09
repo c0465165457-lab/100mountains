@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>台灣小百岳打卡護照</title>
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <style>
+    * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+    body { background-color: #f4f6f8; margin: 0; padding: 20px; color: #333; }
+    .card { background: white; border-radius: 16px; padding: 24px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); text-align: center; max-width: 480px; margin: 0 auto; }
+    h2 { color: #2e7d32; margin-top: 0; font-size: 22px; }
+    .user-box { background: #e8f5e9; padding: 12px; border-radius: 8px; font-weight: bold; color: #1b5e20; margin-bottom: 20px; }
+    .btn { background: #06C755; color: white; border: none; padding: 14px 28px; font-size: 18px; font-weight: bold; border-radius: 10px; cursor: pointer; width: 100%; transition: 0.2s; }
+    .btn:active { background: #05a847; }
+    #status { margin-top: 20px; font-size: 15px; color: #555; line-height: 1.5; word-break: break-all; }
+    .footer { margin-top: 24px; font-size: 12px; color: #888; }
+  </style>
+</head>
+<body>
+
+  <div class="card">
+    <h2>🏔️ 台灣小百岳 GPS 打卡</h2>
+    <div id="user-info" class="user-box">載入 LINE 帳號資訊中...</div>
+    
+    <button class="btn" onclick="checkIn()">📍 開始定位打卡</button>
+    
+    <div id="status">按下上方按鈕即可進行 GPS 比對</div>
+    <div class="footer">請確認已開啟手機 GPS 定位權限</div>
+  </div>
+
+  <script>
+    // ⚠️ 請在此處填入你的設定資訊：
+    const LIFF_ID = "YOUR_LIFF_ID";            // 替換為你的 LIFF ID
+    const GAS_URL = "YOUR_GAS_WEB_APP_URL";    // 替換為你的 Google App Script 網頁應用程式 URL
+
+    // 台灣 100 座小百岳完整座標資料庫
+    const mountains = [
+      { id: 1, name: "基隆山", lat: 25.1181, lng: 121.8492 },
+      { id: 2, name: "七星山", lat: 25.1708, lng: 121.5547 },
+      { id: 3, name: "大屯山", lat: 25.1764, lng: 121.5222 },
+      { id: 4, name: "觀音山", lat: 25.1361, lng: 121.4258 },
+      { id: 5, name: "紅淡山", lat: 25.1189, lng: 121.7511 },
+      { id: 6, name: "槓子寮山", lat: 25.1436, lng: 121.7761 },
+      { id: 7, name: "大武崙山", lat: 25.1558, lng: 121.7089 },
+      { id: 8, name: "姜子寮山", lat: 25.0789, lng: 121.7183 },
+      { id: 9, name: "剪刀石山", lat: 25.0903, lng: 121.5694 },
+      { id: 10, name: "劍潭山", lat: 25.0839, lng: 121.5272 },
+      { id: 11, name: "南港山", lat: 25.0264, lng: 121.5839 },
+      { id: 12, name: "土庫岳", lat: 25.0322, lng: 121.6289 },
+      { id: 13, name: "大崙頭山", lat: 25.1056, lng: 121.5828 },
+      { id: 14, name: "獅仔頭山", lat: 24.9083, lng: 121.5036 },
+      { id: 15, name: "二格山", lat: 24.9625, lng: 121.5861 },
+      { id: 16, name: "天上山", lat: 24.9547, lng: 121.4550 },
+      { id: 17, name: "觀音山（新北五股）", lat: 25.1361, lng: 121.4258 },
+      { id: 18, name: "鳶山", lat: 24.9356, lng: 121.3436 },
+      { id: 19, name: "樹林三角埔頂山", lat: 25.0008, lng: 121.3969 },
+      { id: 20, name: "東眼山", lat: 24.8272, lng: 121.3908 },
+      { id: 21, name: "溪洲山", lat: 24.8194, lng: 121.2892 },
+      { id: 22, name: "石門山（桃園）", lat: 24.8142, lng: 121.2422 },
+      { id: 23, name: "金面山", lat: 24.8692, lng: 121.3061 },
+      { id: 24, name: "角板山", lat: 24.8189, lng: 121.3497 },
+      { id: 25, name: "大湖尖山", lat: 24.4283, lng: 120.8931 },
+      { id: 26, name: "十八尖山", lat: 24.7956, lng: 120.9847 },
+      { id: 27, name: "飛鳳山", lat: 24.7644, lng: 121.1008 },
+      { id: 28, name: "李棟山", lat: 24.6922, lng: 121.3039 },
+      { id: 29, name: "鵝公包山", lat: 24.5828, lng: 121.0378 },
+      { id: 30, name: "五指山（新竹）", lat: 24.6406, lng: 121.0847 },
+      { id: 31, name: "加里山", lat: 24.5328, lng: 121.0267 },
+      { id: 32, name: "仙山", lat: 24.5428, lng: 120.9525 },
+      { id: 33, name: "關刀山", lat: 24.3853, lng: 120.7872 },
+      { id: 34, name: "馬那邦山", lat: 24.3689, lng: 120.9106 },
+      { id: 35, name: "火炎山", lat: 24.3703, lng: 120.7317 },
+      { id: 36, name: "鐵枕山", lat: 23.3364, lng: 120.4897 },
+      { id: 37, name: "鐵砧山", lat: 24.3592, lng: 120.6381 },
+      { id: 38, name: "聚興山", lat: 24.2231, lng: 120.7303 },
+      { id: 39, name: "頭嵙山", lat: 24.1803, lng: 120.7969 },
+      { id: 40, name: "南觀音山", lat: 24.1669, lng: 120.7436 },
+      { id: 41, name: "阿罩霧山", lat: 24.0531, lng: 120.7103 },
+      { id: 42, name: "九份二山", lat: 23.9536, lng: 120.8406 },
+      { id: 43, name: "集集大山", lat: 23.8569, lng: 120.8358 },
+      { id: 44, name: "松柏嶺山", lat: 23.8347, lng: 120.6322 },
+      { id: 45, name: "八卦山", lat: 24.0806, lng: 120.5514 },
+      { id: 46, name: "淺山（橫屏山）", lat: 23.9553, lng: 120.9839 },
+      { id: 47, name: "溪頭山（鳳凰山）", lat: 23.6731, lng: 120.8039 },
+      { id: 48, name: "金子山", lat: 23.6069, lng: 120.8806 },
+      { id: 49, name: "雲嶺丘陵", lat: 23.6081, lng: 120.7094 },
+      { id: 50, name: "石壁山", lat: 23.5936, lng: 120.7258 },
+      { id: 51, name: "大尖山（雲林）", lat: 23.5989, lng: 120.6506 },
+      { id: 52, name: "梨子腳山", lat: 23.5689, lng: 120.6133 },
+      { id: 53, name: "獨立山", lat: 23.5358, lng: 120.6017 },
+      { id: 54, name: "大棟山（嘉義）", lat: 23.4839, lng: 120.6972 },
+      { id: 55, name: "大方山（三腳南山）", lat: 23.2436, lng: 120.5708 },
+      { id: 56, name: "大湖尖山（嘉義）", lat: 23.4736, lng: 120.6303 },
+      { id: 57, name: "紅毛埤山", lat: 23.4714, lng: 120.4856 },
+      { id: 58, name: "關子嶺大棟山", lat: 23.3289, lng: 120.5019 },
+      { id: 59, name: "崁頭山", lat: 23.2628, lng: 120.4842 },
+      { id: 60, name: "九層嶺山", lat: 23.0569, lng: 120.3958 },
+      { id: 61, name: "西阿里關山", lat: 23.1119, lng: 120.5636 },
+      { id: 62, name: "竹子尖山", lat: 23.1614, lng: 120.5486 },
+      { id: 63, name: "梅嶺（獵鷹尖）", lat: 23.1789, lng: 120.5606 },
+      { id: 64, name: "鳴雲山（東藤枝山）", lat: 23.0806, lng: 120.7214 },
+      { id: 65, name: "旗尾山", lat: 22.8986, lng: 120.4878 },
+      { id: 66, name: "大崗山", lat: 22.8614, lng: 120.3325 },
+      { id: 67, name: "觀音山（高雄大社）", lat: 22.7278, lng: 120.3639 },
+      { id: 68, name: "柴山（壽山）", lat: 22.6517, lng: 120.2600 },
+      { id: 69, name: "笠頂山", lat: 22.6583, lng: 120.6483 },
+      { id: 70, name: "棚集山", lat: 22.5647, lng: 120.6358 },
+      { id: 71, name: "女乃山", lat: 22.1831, lng: 120.8108 },
+      { id: 72, name: "里龍山", lat: 22.1628, lng: 120.7483 },
+      { id: 73, name: "大山母山", lat: 21.9686, lng: 120.7600 },
+      { id: 74, name: "雙流（帽子山）", lat: 22.2189, lng: 120.8039 },
+      { id: 75, name: "太麻里山", lat: 22.6186, lng: 120.9639 },
+      { id: 76, name: "都蘭山", lat: 22.8931, lng: 121.1739 },
+      { id: 77, name: "八里灣山", lat: 23.5789, lng: 121.4689 },
+      { id: 78, name: "鯉魚山（花蓮）", lat: 23.9239, lng: 121.5039 },
+      { id: 79, name: "月眉山", lat: 23.8639, lng: 121.5583 },
+      { id: 80, name: "初英山", lat: 23.9669, lng: 121.5039 },
+      { id: 81, name: "美崙山", lat: 23.9889, lng: 121.6119 },
+      { id: 82, name: "立霧山", lat: 24.1739, lng: 121.6239 },
+      { id: 83, name: "三角錐山", lat: 24.1839, lng: 121.5439 },
+      { id: 84, name: "明池神木山", lat: 24.6519, lng: 121.4208 },
+      { id: 85, name: "礁溪三角崙山", lat: 24.8589, lng: 121.7208 },
+      { id: 86, name: "烘爐地山（宜蘭）", lat: 24.8389, lng: 121.6889 },
+      { id: 87, name: "抹茶山（聖母山莊）", lat: 24.8639, lng: 121.7239 },
+      { id: 88, name: "鵲子山", lat: 24.8289, lng: 121.7489 },
+      { id: 89, name: "龜山島", lat: 24.8439, lng: 121.9519 },
+      { id: 90, name: "三星山", lat: 24.5089, lng: 121.5289 },
+      { id: 91, name: "仁澤（鳩之澤）", lat: 24.5739, lng: 121.5039 },
+      { id: 92, name: "蘭嶼紅頭山", lat: 22.0569, lng: 121.5369 },
+      { id: 93, name: "綠島阿峨山", lat: 22.6619, lng: 121.4939 },
+      { id: 94, name: "澎湖太武山", lat: 23.5719, lng: 119.6389 },
+      { id: 95, name: "金門太武山", lat: 24.4639, lng: 118.4119 },
+      { id: 96, name: "馬祖雲台山", lat: 26.1539, lng: 119.9239 },
+      { id: 97, name: "蛇頭山（澎湖）", lat: 23.5519, lng: 119.5539 },
+      { id: 98, name: "小金門紅土山", lat: 24.4289, lng: 118.2439 },
+      { id: 99, name: "芹壁壁山（馬祖）", lat: 26.2219, lng: 119.9839 },
+      { id: 100, name: "東引恩愛山", lat: 26.3719, lng: 120.4939 }
+    ];
+
+    let userProfile = null;
+
+    // 初始化 LIFF 頁面
+    liff.init({ liffId: LIFF_ID }).then(() => {
+      if (!liff.isLoggedIn()) {
+        liff.login();
+      } else {
+        liff.getProfile().then(profile => {
+          userProfile = profile;
+          document.getElementById('user-info').innerText = `👋 哈囉，${profile.displayName}！`;
+        });
+      }
+    }).catch(err => {
+      document.getElementById('status').innerText = "LIFF 初始化失敗，請檢查 LIFF ID 設定。";
+    });
+
+    // Haversine 公式計算距離 (公尺)
+    function getDistance(lat1, lon1, lat2, lon2) {
+      const R = 6371e3;
+      const φ1 = lat1 * Math.PI / 180;
+      const φ2 = lat2 * Math.PI / 180;
+      const Δφ = (lat2 - lat1) * Math.PI / 180;
+      const Δλ = (lon2 - lon1) * Math.PI / 180;
+      const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ/2) * Math.sin(Δλ/2);
+      return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    }
+
+    // 打卡邏輯
+    function checkIn() {
+      const statusText = document.getElementById('status');
+      statusText.innerHTML = "📡 正在讀取手機 GPS 定位...";
+
+      if (!navigator.geolocation) {
+        statusText.innerText = "❌ 您的裝置不支援 GPS 定位功能";
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(position => {
+        const userLat = position.coords.latitude;
+        const userLng = position.coords.longitude;
+        
+        let nearestMountain = null;
+        let minDistance = Infinity;
+
+        // 計算與 100 座山頭的最短距離
+        mountains.forEach(m => {
+          const dist = getDistance(userLat, userLng, m.lat, m.lng);
+          if (dist < minDistance) {
+            minDistance = dist;
+            nearestMountain = m;
+          }
+        });
+
+        // 判斷距離是否在 150 公尺容許範圍內
+        if (minDistance <= 150) {
+          statusText.innerHTML = `✅ 成功定位至 <b>${nearestMountain.name}</b>！<br>正在同步至雲端試算表...`;
+          
+          fetch(GAS_URL, {
+            method: 'POST',
+            body: JSON.stringify({
+              userId: userProfile ? userProfile.userId : "Unknown",
+              userName: userProfile ? userProfile.displayName : "山友",
+              mountainName: nearestMountain.name,
+              distance: minDistance
+            })
+          }).then(res => res.json()).then(data => {
+            statusText.innerHTML = `🎉 <b>恭喜完成 ${nearestMountain.name} 打卡！</b><br>紀錄已成功儲存至試算表。`;
+          }).catch(err => {
+            statusText.innerHTML = `⚠️ 定位成功，但上傳資料時失敗（請檢查 GAS 部署權限）。`;
+          });
+        } else {
+          statusText.innerHTML = `❌ <b>未進入打卡範圍</b><br>離你最近的小百岳是 <b>${nearestMountain.name}</b><br>目前距離約 <b>${Math.round(minDistance)}</b> 公尺（需在 150m 內）。`;
+        }
+      }, err => {
+        statusText.innerHTML = "❌ 無法取得 GPS 座標，請確認瀏覽器已開啟定位權限服務。";
+      }, {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0
+      });
+    }
+  </script>
+</body>
+</html>
